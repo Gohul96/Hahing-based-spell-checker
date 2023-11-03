@@ -79,7 +79,7 @@ public class HashingSpellChecker {
         // Load a sample dictionary
         List<String> dictionaryWords = new ArrayList<>();
         dictionaryWords.add("apple");
-        dictionaryWords.add("banana");
+        dictionaryWords.add("gohul");
         dictionaryWords.add("cherry");
         // Add more words to the dictionary
 
