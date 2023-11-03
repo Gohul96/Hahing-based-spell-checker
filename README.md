@@ -1,88 +1,111 @@
-import java.util.Scanner;
-import java.util.Hashtable;
+import java.util.*;
 
-public class SpellChecker {
-    public static void main(String[] args) {
-        Hashtable<String, Integer> dictionary = new Hashtable<>();
-        
-        // Load the dictionary with correctly spelled words
-        loadDictionary(dictionary);
-        
-        // Create a scanner to read user input
-        Scanner scanner = new Scanner(System.in);
-        
-        while (true) {
-            System.out.print("Enter a word (q to quit): ");
-            String input = scanner.nextLine().toLowerCase();
-            
-            if (input.equals("q")) {
-                break;
+public class HashingSpellChecker {
+    private HashMap<Integer, List<String>> dictionary;
+
+    public HashingSpellChecker() {
+        dictionary = new HashMap<>();
+    }
+
+    // Load the dictionary into the hash table
+    public void loadDictionary(List<String> words) {
+        for (String word : words) {
+            int hash = hashFunction(word);
+            if (!dictionary.containsKey(hash)) {
+                dictionary.put(hash, new ArrayList<>());
             }
-            
-            if (!dictionary.containsKey(input)) {
-                System.out.println("Misspelled word: " + input);
-                suggestCorrections(dictionary, input);
-            } else {
-                System.out.println("Correctly spelled word.");
+            dictionary.get(hash).add(word);
+        }
+    }
+
+    // Spell checking
+    public List<String> checkSpelling(String word) {
+        int hash = hashFunction(word);
+        if (dictionary.containsKey(hash)) {
+            return dictionary.get(hash);
+        } else {
+            return suggestCorrections(word);
+        }
+    }
+
+    // Hash function
+    private int hashFunction(String word) {
+        // A more advanced hash function can be implemented here.
+        int hash = 0;
+        for (int i = 0; i < word.length(); i++) {
+            hash = (hash * 31 + word.charAt(i)) % 10007; // A prime number for better distribution
+        }
+        return hash;
+    }
+
+    // Suggestions for corrections (using Levenshtein distance)
+    private List<String> suggestCorrections(String word) {
+        List<String> suggestions = new ArrayList<>();
+        int threshold = 2; // Maximum edit distance for suggestions
+        for (Map.Entry<Integer, List<String>> entry : dictionary.entrySet()) {
+            for (String dictWord : entry.getValue()) {
+                int distance = levenshteinDistance(word, dictWord);
+                if (distance <= threshold) {
+                    suggestions.add(dictWord);
+                }
             }
         }
-        
-        scanner.close();
+        return suggestions;
     }
-    
-    // Load the dictionary with correctly spelled words
-    private static void loadDictionary(Hashtable<String, Integer> dictionary) {
-        // Add correctly spelled words to the dictionary
-        dictionary.put("apple", 1);
-        dictionary.put("banana", 1);
-        dictionary.put("cherry", 1);
-        dictionary.put("date", 1);
-        dictionary.put("fig", 1);
-        dictionary.put("grape", 1);
-        dictionary.put("kiwi", 1);
-        dictionary.put("lemon", 1);
-        dictionary.put("lime", 1);
-        dictionary.put("mango", 1);
-        dictionary.put("orange", 1);
-        dictionary.put("pear", 1);
-        dictionary.put("plum", 1);
-        dictionary.put("strawberry", 1);
-        dictionary.put("watermelon", 1);
-    }
-    
-    // Suggest corrections for a misspelled word
-    private static void suggestCorrections(Hashtable<String, Integer> dictionary, String word) {
-        System.out.print("Suggestions: ");
-        
-        for (String key : dictionary.keySet()) {
-            if (levenshteinDistance(key, word) <= 2) {
-                System.out.print(key + " ");
-            }
-        }
-        
-        System.out.println();
-    }
-    
-    // Calculate the Levenshtein distance between two words
-    private static int levenshteinDistance(String word1, String word2) {
+
+    private int levenshteinDistance(String word1, String word2) {
         int m = word1.length();
         int n = word2.length();
         int[][] dp = new int[m + 1][n + 1];
-        
+
         for (int i = 0; i <= m; i++) {
-            dp[i][0] = i;
-        }
-        for (int j = 0; j <= n; j++) {
-            dp[0][j] = j;
-        }
-        
-        for (int i = 1; i <= m; i++) {
-            for (int j = 1; j <= n; j++) {
-                int cost = (word1.charAt(i - 1) == word2.charAt(j - 1)) ? 0 : 1;
-                dp[i][j] = Math.min(Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1), dp[i - 1][j - 1] + cost);
+            for (int j = 0; j <= n; j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    int substitutionCost = word1.charAt(i - 1) == word2.charAt(j - 1) ? 0 : 1;
+                    dp[i][j] = Math.min(Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1), dp[i - 1][j - 1] + substitutionCost);
+                }
             }
         }
-        
         return dp[m][n];
+    }
+
+    public static void main(String[] args) {
+        HashingSpellChecker spellChecker = new HashingSpellChecker();
+
+        // Load a sample dictionary
+        List<String> dictionaryWords = new ArrayList<>();
+        dictionaryWords.add("apple");
+        dictionaryWords.add("banana");
+        dictionaryWords.add("cherry");
+        // Add more words to the dictionary
+
+        spellChecker.loadDictionary(dictionaryWords);
+
+        // Create a Scanner for user input
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter a text for spell checking: ");
+        String userInput = scanner.nextLine();
+
+        // Tokenize the input into words and check spelling
+        String[] words = userInput.split("\\s+");
+        for (String word : words) {
+            List<String> corrections = spellChecker.checkSpelling(word);
+
+            if (corrections.isEmpty()) {
+                System.out.println("No suggestions found for '" + word + "'. The word may be correct.");
+            } else {
+                System.out.println("Suggestions for '" + word + "':");
+                for (String suggestion : corrections) {
+                    System.out.println(suggestion);
+                }
+            }
+        }
+
+        // Close the scanner
+        scanner.close();
     }
 }
